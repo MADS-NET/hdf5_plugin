@@ -54,6 +54,9 @@ cmake --build build -j4
 sudo cmake --install build
 ```
 
+**NOTE**: on some cmake versions on Linux, parallel builds may not work as expected. If you encounter issues, try building without the `-j4` flag.
+
+
 Windows:
 
 ```powershell

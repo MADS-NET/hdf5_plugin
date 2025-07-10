@@ -66,16 +66,17 @@ set(HDF5_BUILD_UTILS OFF CACHE INTERNAL "")
 set(HDF5_ENABLE_SZIP_ENCODING OFF CACHE INTERNAL "")
 set(HDF5_ENABLE_SZIP_SUPPORT OFF CACHE INTERNAL "")
 set(HDF5_GENERATE_HEADERS ON CACHE INTERNAL "")
+set(HDF5_ENABLE_Z_LIB_SUPPORT OFF CACHE INTERNAL "")
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
 set(BUILD_TESTING OFF CACHE INTERNAL "")
-FetchContent_Declare(HDF5
+FetchContent_Declare(hdf5
   GIT_REPOSITORY https://github.com/HDFGroup/hdf5.git
   GIT_TAG        hdf5_1.14.6
   GIT_SHALLOW    TRUE
   GIT_PROGRESS   TRUE
 )
 
-FetchContent_MakeAvailable(pugg json HDF5)
+FetchContent_MakeAvailable(pugg json hdf5)
 
 FetchContent_Populate(plugin 
   GIT_REPOSITORY https://github.com/pbosetti/mads_plugin.git
@@ -139,7 +140,8 @@ endif()
 include_directories(${json_SOURCE_DIR}/include)
 
 # These plugins are always build and use for testing
-add_plugin(hdf5_writer LIBS hdf5_cpp hdf5 z)
+add_plugin(hdf5_writer LIBS hdf5_cpp hdf5 )
+add_dependencies(hdf5_writer hdf5_cpp-static)
 
 
 # INSTALL ######################################################################
