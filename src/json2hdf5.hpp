@@ -11,11 +11,11 @@ Convert JSON files to HDF5 format using nlohmann and HDF5 library
 #define JSON2HDF5_HPP
 
 #include <H5Cpp.h>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include <map>
 
 class JsonToHdf5Converter {
 public:
@@ -106,7 +106,7 @@ public:
     _file.close();
   }
 
-  void set_keypaths(const std::vector<std::string> &data_paths, 
+  void set_keypaths(const std::vector<std::string> &data_paths,
                     const std::string &group_name) {
     _keypaths[group_name] = data_paths;
   }
@@ -170,9 +170,14 @@ private:
       start = end + _keypath_sep.length();
       end = keypath.find(_keypath_sep, start);
     }
-    return result.contains(keypath.substr(start))
-               ? result[keypath.substr(start)]
-               : nullptr;
+    result = result.contains(keypath.substr(start))
+                 ? result[keypath.substr(start)]
+                 : nullptr;
+    if (result.contains("$date")) {
+      // Handle timestamp with $date
+      result = result["$date"];
+    }
+    return result;
   }
 
   // Helper method to create a new dataset based on JSON data type
