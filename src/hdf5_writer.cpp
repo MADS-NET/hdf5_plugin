@@ -51,6 +51,10 @@ public:
 
   // Implement the actual functionality here
   return_type load_data(json const &input, string topic = "") override {
+    if (std::find(_converter.groups().begin(), _converter.groups().end(), topic) == _converter.groups().end()) {
+      _error = "Topic '" + topic + "' not found in keypaths.";
+      return return_type::retry;
+    }
     try {
       _converter.save_to_group(input, topic);
     } catch (const std::exception &e) {
@@ -74,8 +78,10 @@ public:
 
     _converter.open(_params["filename"].get<string>());
     _converter.set_keypath_separator(_params["keypath_sep"].get<string>());
-    for (const auto &keypath : _params["keypaths"]) {
-      _converter.append_keypath(keypath.get<string>());
+    for (const auto &group : _params["keypaths"].items()) {
+      for (const auto &keypath : group.value()) {
+        _converter.append_keypath(keypath.get<string>(), group.key());
+      }
     }
   }
 
@@ -87,13 +93,17 @@ public:
     map<string, string> info_map;
     info_map["File name"] = _params["filename"];
     stringstream ss;
-    for (const auto &keypath : _converter.keypaths()) {
-      ss << keypath << ", ";
+    size_t total_keypaths = 0;
+    for (const auto &group : _converter.groups()) {
+      for (const auto &keypath : _converter.keypaths(group)) {
+        ss << group << _converter.keypath_separator() << keypath << ", ";
+      }
+      total_keypaths += _converter.keypaths(group).size();
     }
     if (!ss.str().empty()) {
       ss.seekp(-2, ss.cur); // Remove the last comma and space
     }
-    ss << " (total: " << _converter.keypaths().size() << ")";
+    ss << " (total: " << total_keypaths << ")";
     info_map["Keypaths"] = ss.str();
     info_map["Keypath sep."] = _converter.keypath_separator();
     return info_map;
@@ -146,7 +156,7 @@ int main(int argc, char const *argv[]) {
 
   // Set example values to params
   params["filename"] = "validation_test.h5";
-  params["keypaths"] = {
+  params["keypaths"]["test_topic"] = {
     "data.key1", "data.key2", "data.key3", "data.key4.subkey1", "data.key4.subkey2"};
 
   // Set the parameters
@@ -162,5 +172,6 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
+  cout << "Data successfully written to HDF5 file." << endl;
   return 0;
 }

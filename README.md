@@ -69,9 +69,9 @@ The plugin supports the following settings in the INI file:
 
 ```ini
 [hdf5_writer]
-sub_topic = ["subtopic1", "subtopic2"]
-filename = /path/to/file.h5
-keypaths = ["key1","key2.subkey1","key3"]
+sub_topic = ["topic1", "topic2"]
+filename = "/path/to/file.h5"
+keypaths = {"topic1":["key1","key2.subkey1","key3"], "topic2":["key2.subkey2"]}
 keypath_separator = "."
 ```
 

@@ -15,13 +15,14 @@ Convert JSON files to HDF5 format using nlohmann and HDF5 library
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <map>
 
 class JsonToHdf5Converter {
 public:
   // Constructors
   JsonToHdf5Converter() {
     H5Eset_auto2(H5E_DEFAULT, nullptr, nullptr); // Disable error auto-printing
-    _keypaths = {"timecode", "timestamp", "hostname"};
+    // _keypaths = {"timecode", "timestamp", "hostname"};
   }
 
   JsonToHdf5Converter(const std::string &filename) : JsonToHdf5Converter() {
@@ -54,7 +55,7 @@ public:
     if (group_name.empty()) {
       throw std::invalid_argument("Group name cannot be empty.");
     }
-    for (const auto &item : _keypaths) {
+    for (const auto &item : _keypaths[group_name]) {
       j = json_from_keypath(json_data, item);
       if (j != nullptr) {
         write_to_dataset(j, item, group_name);
@@ -66,8 +67,8 @@ public:
   }
 
   void write_to_dataset(const nlohmann::json &data,
-                     const std::string &dataset_name,
-                     const std::string &group_name) {
+                        const std::string &dataset_name,
+                        const std::string &group_name) {
     H5::Group group;
     try {
       try {
@@ -105,32 +106,53 @@ public:
     _file.close();
   }
 
-  void set_keypaths(const std::vector<std::string> &data_paths) {
-    _keypaths = data_paths;
+  void set_keypaths(const std::vector<std::string> &data_paths, 
+                    const std::string &group_name) {
+    _keypaths[group_name] = data_paths;
   }
 
   void set_keypath_separator(const std::string &separator) {
     if (separator.empty() || separator.find("/") != std::string::npos) {
-      throw std::invalid_argument("Keypath separator cannot be empty nor contain '/'.");
+      throw std::invalid_argument(
+          "Keypath separator cannot be empty nor contain '/'.");
     }
     _keypath_sep = separator;
   }
 
-  std::string keypath_separator() const {
-    return _keypath_sep;
+  std::string keypath_separator() const { return _keypath_sep; }
+
+  const std::vector<std::string> &
+  keypaths(std::string const &group_name) const {
+    return _keypaths.at(group_name);
   }
 
-  const std::vector<std::string> &keypaths() const { return _keypaths; }
+  std::vector<std::string> &groups() const {
+    if (_keypaths.empty()) {
+      throw std::runtime_error("No groups defined in keypaths.");
+    }
+    // return a vector of group names
+    static std::vector<std::string> group_names;
+    group_names.clear();
+    for (const auto &pair : _keypaths) {
+      group_names.push_back(pair.first);
+    }
+    return group_names;
+  }
 
-  auto &append_keypath(std::string const &dataset_name) {
+  auto &append_keypath(std::string const &dataset_name,
+                       std::string const &group_name) {
+    if (_keypaths.find(group_name) == _keypaths.end()) {
+      _keypaths[group_name] = {"timecode", "timestamp", "hostname"};
+    }
     // Add dataset name to the list of data paths
-    _keypaths.push_back(dataset_name);
+    _keypaths[group_name].push_back(dataset_name);
     return *this;
   }
 
 private:
-  H5::H5File _file;                   // HDF5 file object
-  std::vector<std::string> _keypaths; // Store dataset names
+  H5::H5File _file; // HDF5 file object
+  std::map<std::string, std::vector<std::string>>
+      _keypaths; // Store dataset names
   std::string _keypath_sep = ".";
 
   nlohmann::json json_from_keypath(const nlohmann::json &j,
