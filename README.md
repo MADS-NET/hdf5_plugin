@@ -85,4 +85,12 @@ All settings are optional; if omitted, the default values are used. The keypaths
 
 The demo executable creates a `validation_test.h5` file, appending the same data to it every time it is executed.
 
+# HDF5 Tools
+
+The install command also installs some of the HDf5 tools, notably:
+
+* `h5ls`: lists the contents of an HDF5 file
+* `h5watch`: watches an HDF5 file for changes
+* `h5stat`: displays statistics about an HDF5 file
+
 ---
