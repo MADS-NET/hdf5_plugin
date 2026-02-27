@@ -50,7 +50,7 @@ public:
   string kind() override { return PLUGIN_NAME; }
 
   // Implement the actual functionality here
-  return_type load_data(json const &input, string topic = "") override {
+  return_type load_data(json const &input, string topic = "", vector<unsigned char> const *blob = nullptr) override {
     if (std::find(_converter.groups().begin(), _converter.groups().end(), topic) == _converter.groups().end()) {
       _error = "Topic '" + topic + "' not found in keypaths.";
       return return_type::retry;
@@ -64,7 +64,7 @@ public:
     return return_type::success;
   }
 
-  void set_params(void const *params) override { 
+  void set_params(const json &params) override { 
     // Call the parent class method to set the common parameters 
     // (e.g. agent_id, etc.)
     Sink::set_params(params);
@@ -74,7 +74,7 @@ public:
     _params["keypath_sep"] = "."; // Default keypath separator
     // then merge the defaults with the actually provided parameters
     // params needs to be cast to json
-    _params.merge_patch(*(json *)params);
+    _params.merge_patch(params);
 
     _converter.open(_params["filename"].get<string>());
     _converter.set_keypath_separator(_params["keypath_sep"].get<string>());
@@ -160,7 +160,7 @@ int main(int argc, char const *argv[]) {
     "data.key1", "data.key2", "data.key3", "data.key4.subkey1", "data.key4.subkey2"};
 
   // Set the parameters
-  plugin.set_params(&params);
+  plugin.set_params(params);
 
   for (const auto &info : plugin.info()) {
     cout << info.first << ": " << info.second << endl;
