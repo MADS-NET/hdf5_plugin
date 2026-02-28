@@ -2,6 +2,8 @@
 
 This is a Sink plugin for [MADS](https://github.com/MADS-NET/MADS). 
 
+> This plugin has been updated for MADS v2
+
 This plugin saves the incoming data into a [HDF5](https://www.hdfgroup.org/solutions/hdf5/) file. It is designed to work with the MADS framework, allowing users to store data in a structured format that is efficient for both storage and retrieval.
 
 Data are stored in a hierarchical structure, similar to a filesystem, which allows for easy organization and access. The plugin supports various data types and can handle large datasets efficiently.
