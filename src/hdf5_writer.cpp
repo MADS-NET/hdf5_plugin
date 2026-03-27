@@ -137,12 +137,19 @@ INSTALL_SINK_DRIVER(Hdf5Plugin, json)
 
 For testing purposes, when directly executing the plugin
 */
-int main(int argc, char const *argv[]) {
-  Hdf5Plugin plugin;
-  json input, params;
+#include "unit_tests.hpp"
+using namespace Mads;
 
-  // Initialize the input data
-  input = {
+int main(int argc, char const *argv[]) {
+  cout << "====================================" << endl;
+  cout << "Running unit tests for Hdf5Plugin..." << endl;
+  cout << "Plugin kind: " << Hdf5Plugin().kind() << endl;
+  cout << "Protocol version: " << Hdf5Plugin::version << endl;
+  cout << "Server name: " << Hdf5Plugin::server_name() << endl;
+  cout << "====================================\n" << endl;
+
+  int failures = 0, tests = 0;
+  json input = {
     {"timecode", 1234567890},
     {"timestamp", "2025-07-09T12:52:15.976+0200"},
     {"hostname", "Fram-IV.local"},
@@ -153,25 +160,54 @@ int main(int argc, char const *argv[]) {
       {"key4", {{"subkey1", "subvalue1"}, {"subkey2", "subvalue2"}}}
     }}
   };
+  json params = {
+    {"filename", "test_output.h5"},
+    {"keypaths", {
+      {"test_topic", {
+        "data.key1", "data.key2", "data.key3", "data.key4.subkey1", "data.key4.subkey2"
+      }}
+    }},
+    {"keypath_sep", "."}
+  };
 
-  // Set example values to params
-  params["filename"] = "validation_test.h5";
-  params["keypaths"]["test_topic"] = {
-    "data.key1", "data.key2", "data.key3", "data.key4.subkey1", "data.key4.subkey2"};
-
-  // Set the parameters
-  plugin.set_params(params);
-
-  for (const auto &info : plugin.info()) {
-    cout << info.first << ": " << info.second << endl;
+  {
+    // Test 1: set_params
+    Hdf5Plugin plugin;
+    failures += !doesnt_throw([&]() { plugin.set_params(params); }, "set_params threw an exception");
+    tests++;
   }
 
-  // Process data
-  if (plugin.load_data(input, "test_topic") != return_type::success) {
-    cerr << "Error: " << plugin.error() << endl;
+  {
+    // Test 2: load_data
+    Hdf5Plugin plugin;
+    plugin.set_params(params);
+    failures += !doesnt_throw([&]() { plugin.load_data(input, "test_topic"); }, "load_data threw an exception");
+    tests++;
+  }
+
+  {
+    // Test 3: info
+    Hdf5Plugin plugin;
+    json params;
+    failures += doesnt_throw([&]() { plugin.set_params(params); }, "set_params with empty params didn't threw an exception");
+    tests++;
+
+  }
+  
+  {
+    // Test 4: load_data returns success
+    Hdf5Plugin plugin;
+    plugin.set_params(params);
+    require(plugin.load_data(input, "test_topic") == return_type::success, "Failed to load data into Hdf5Plugin");
+    tests++;
+  }
+
+  cout << "\nUnit tests completed: " << (tests - failures) << "/" << tests << " passed." << endl;
+  if (failures > 0) {
+    cerr << failures << " unit test(s) failed. Please fix the issues before using the plugin." << endl;
     return 1;
   }
-
-  cout << "Data successfully written to HDF5 file." << endl;
+  
+  
   return 0;
 }

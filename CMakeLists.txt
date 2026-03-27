@@ -31,7 +31,12 @@ endif()
 # PROJECT SETTINGS #############################################################
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
+option(HDF5_PLUGIN_BUILD_TESTING "Enable tests for the hdf5 plugin" ON)
+if(HDF5_PLUGIN_BUILD_TESTING)
+  enable_testing()
+endif()
 
 if(UNIX AND NOT APPLE)
   set(LINUX TRUE)
@@ -52,11 +57,8 @@ FetchContent_Declare(pugg
 set(BUILD_TESTING OFF CACHE INTERNAL "")
 set(JSON_BuildTests OFF CACHE INTERNAL "")
 FetchContent_Declare(json
-  GIT_REPOSITORY https://github.com/nlohmann/json.git
-  GIT_TAG        v3.11.3
-  GIT_SHALLOW    TRUE
-  GIT_PROGRESS   TRUE
-  EXCLUDE_FROM_ALL
+  URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
 
@@ -82,6 +84,8 @@ FetchContent_Declare(hdf5
 )
 
 FetchContent_MakeAvailable(pugg json hdf5)
+
+set(BUILD_TESTING OFF CACHE INTERNAL "")
 
 FetchContent_Populate(plugin 
   GIT_REPOSITORY https://github.com/pbosetti/mads_plugin.git
@@ -154,6 +158,22 @@ else()
   add_plugin(hdf5_writer LIBS hdf5_cpp hdf5)
 endif()
 add_dependencies(hdf5_writer hdf5_cpp-static)
+
+if(HDF5_PLUGIN_BUILD_TESTING)
+  if(APPLE)
+    set(HDF5_WRITER_TEST_TARGET hdf5_writer)
+  else()
+    set(HDF5_WRITER_TEST_TARGET hdf5_writer_main)
+  endif()
+
+  add_test(
+    NAME hdf5_writer_unit_tests
+    COMMAND $<TARGET_FILE:${HDF5_WRITER_TEST_TARGET}>
+  )
+  set_tests_properties(hdf5_writer_unit_tests PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+endif()
 
 list(APPEND TARGET_H5_TOOLS h5ls h5watch h5stat)
 
