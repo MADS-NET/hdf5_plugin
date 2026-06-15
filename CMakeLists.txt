@@ -12,7 +12,25 @@
 # NOTICE: MADS Version 1.3.1
 cmake_minimum_required(VERSION 3.28)
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
-project(hdf5 VERSION 1.3.1 LANGUAGES CXX)
+# Get the latest git tag or default to 0.1.0
+execute_process(
+  COMMAND git describe --tags --abbrev=0
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  OUTPUT_VARIABLE GIT_VERSION
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+  ERROR_QUIET
+)
+if(GIT_VERSION MATCHES "^v")
+  string(SUBSTRING "${GIT_VERSION}" 1 -1 GIT_VERSION)
+endif()
+if(NOT GIT_VERSION MATCHES "^[0-9]+(\\.[0-9]+)?(\\.[0-9]+)?(\\.[0-9]+)?$")
+  set(GIT_VERSION "0.1.0")
+  message(STATUS "Using default version: ${GIT_VERSION}")
+else()
+  message(STATUS "Using Git tag version: ${GIT_VERSION}")
+endif()
+
+project(hdf5 VERSION ${GIT_VERSION} LANGUAGES CXX)
 if(CMAKE_BUILD_TYPE STREQUAL "")
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
 endif()
