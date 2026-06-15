@@ -177,12 +177,11 @@ endif()
 include_directories(${json_SOURCE_DIR}/include)
 
 # These plugins are always build and use for testing
+set(HDF5_PLUGIN_LIBS hdf5_cpp-static hdf5-static)
 if (WIN32)
-  add_plugin(hdf5_writer LIBS libhdf5_cpp libhdf5 shlwapi ws2_32)
-else()
-  add_plugin(hdf5_writer LIBS hdf5_cpp hdf5)
+  list(APPEND HDF5_PLUGIN_LIBS shlwapi ws2_32)
 endif()
-add_dependencies(hdf5_writer hdf5_cpp-static)
+add_plugin(hdf5_writer LIBS ${HDF5_PLUGIN_LIBS})
 hdf5_plugin_register_ctest(hdf5_writer)
 
 # INSTALL ######################################################################
