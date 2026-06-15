@@ -33,15 +33,45 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(SRC_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
-option(HDF5_PLUGIN_BUILD_TESTING "Enable tests for the hdf5 plugin" ON)
-if(HDF5_PLUGIN_BUILD_TESTING)
-  enable_testing()
-endif()
 
 if(UNIX AND NOT APPLE)
   set(LINUX TRUE)
   add_compile_options(-fPIC)
 endif()
+
+# CHANGES ADDED 2026-03-27 ####################################################
+# Keep all test-related CMake additions isolated in this block.
+option(HDF5_PLUGIN_BUILD_TESTING "Enable tests for the hdf5 plugin" ON)
+if(HDF5_PLUGIN_BUILD_TESTING)
+  enable_testing()
+endif()
+
+function(hdf5_plugin_disable_dependency_testing)
+  set(BUILD_TESTING OFF CACHE INTERNAL "")
+  set(JSON_BuildTests OFF CACHE INTERNAL "")
+  set(H5EX_BUILD_TESTING OFF CACHE INTERNAL "")
+endfunction()
+
+function(hdf5_plugin_register_ctest test_target)
+  if(NOT HDF5_PLUGIN_BUILD_TESTING)
+    return()
+  endif()
+
+  if(APPLE)
+    set(hdf5_writer_test_target ${test_target})
+  else()
+    set(hdf5_writer_test_target ${test_target}_main)
+  endif()
+
+  add_test(
+    NAME hdf5_writer_unit_tests
+    COMMAND $<TARGET_FILE:${hdf5_writer_test_target}>
+  )
+  set_tests_properties(hdf5_writer_unit_tests PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  )
+endfunction()
+# END CHANGES ADDED 2026-03-27 ################################################
 
 # DEPENDENCIES #################################################################
 include(FetchContent)
@@ -54,8 +84,7 @@ FetchContent_Declare(pugg
   EXCLUDE_FROM_ALL
 )
 
-set(BUILD_TESTING OFF CACHE INTERNAL "")
-set(JSON_BuildTests OFF CACHE INTERNAL "")
+hdf5_plugin_disable_dependency_testing()
 FetchContent_Declare(json
   URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
@@ -64,17 +93,15 @@ FetchContent_Declare(json
 
 set(H5EX_BUILD_EXAMPLES OFF CACHE INTERNAL "")
 set(H5EX_BUILD_HL OFF CACHE INTERNAL "")
-set(H5EX_BUILD_TESTING OFF CACHE INTERNAL "")
 set(HDF5_BUILD_CPP_LIB ON CACHE INTERNAL "")
 set(HDF5_BUILD_EXAMPLES OFF CACHE INTERNAL "")
-set(HDF5_BUILD_TOOLS ON CACHE INTERNAL "")
+set(HDF5_BUILD_TOOLS OFF CACHE INTERNAL "")
 set(HDF5_BUILD_UTILS OFF CACHE INTERNAL "")
 set(HDF5_ENABLE_SZIP_ENCODING OFF CACHE INTERNAL "")
 set(HDF5_ENABLE_SZIP_SUPPORT OFF CACHE INTERNAL "")
 set(HDF5_GENERATE_HEADERS ON CACHE INTERNAL "")
 set(HDF5_ENABLE_Z_LIB_SUPPORT OFF CACHE INTERNAL "")
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
-set(BUILD_TESTING OFF CACHE INTERNAL "")
 FetchContent_Declare(hdf5
   GIT_REPOSITORY https://github.com/HDFGroup/hdf5.git
   GIT_TAG        hdf5_1.14.6
@@ -84,8 +111,6 @@ FetchContent_Declare(hdf5
 )
 
 FetchContent_MakeAvailable(pugg json hdf5)
-
-set(BUILD_TESTING OFF CACHE INTERNAL "")
 
 FetchContent_Populate(plugin 
   GIT_REPOSITORY https://github.com/pbosetti/mads_plugin.git
@@ -158,32 +183,11 @@ else()
   add_plugin(hdf5_writer LIBS hdf5_cpp hdf5)
 endif()
 add_dependencies(hdf5_writer hdf5_cpp-static)
-
-if(HDF5_PLUGIN_BUILD_TESTING)
-  if(APPLE)
-    set(HDF5_WRITER_TEST_TARGET hdf5_writer)
-  else()
-    set(HDF5_WRITER_TEST_TARGET hdf5_writer_main)
-  endif()
-
-  add_test(
-    NAME hdf5_writer_unit_tests
-    COMMAND $<TARGET_FILE:${HDF5_WRITER_TEST_TARGET}>
-  )
-  set_tests_properties(hdf5_writer_unit_tests PROPERTIES
-    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-  )
-endif()
-
-list(APPEND TARGET_H5_TOOLS h5ls h5watch h5stat)
+hdf5_plugin_register_ctest(hdf5_writer)
 
 # INSTALL ######################################################################
-install(TARGETS ${TARGET_H5_TOOLS}
-  RUNTIME DESTINATION bin
-)
 if(APPLE)
   install(TARGETS ${TARGET_LIST}
-
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION lib
     ARCHIVE DESTINATION lib
@@ -195,3 +199,33 @@ else()
     ARCHIVE DESTINATION lib
   )
 endif()
+
+
+# PACKAGE #######################################################################
+string(TOLOWER "${CMAKE_SYSTEM_NAME}" PACKAGE_OS_NAME)
+if(APPLE AND CMAKE_OSX_ARCHITECTURES)
+  list(LENGTH CMAKE_OSX_ARCHITECTURES PACKAGE_OSX_ARCHITECTURES_COUNT)
+  if(PACKAGE_OSX_ARCHITECTURES_COUNT GREATER 1)
+    set(PACKAGE_ARCH_NAME "universal")
+  else()
+    set(PACKAGE_ARCH_NAME "${CMAKE_OSX_ARCHITECTURES}")
+  endif()
+else()
+  set(PACKAGE_ARCH_NAME "${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+if(PACKAGE_ARCH_NAME STREQUAL "")
+  set(PACKAGE_ARCH_NAME "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+endif()
+if(PACKAGE_ARCH_NAME STREQUAL "")
+  set(PACKAGE_ARCH_NAME "unknown")
+endif()
+string(TOLOWER "${PACKAGE_ARCH_NAME}" PACKAGE_ARCH_NAME)
+
+set(CPACK_GENERATOR "ZIP")
+set(CPACK_PACKAGE_NAME "${PROJECT_NAME}")
+set(CPACK_PACKAGE_VENDOR "MADS")
+set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+set(CPACK_INCLUDE_TOPLEVEL_DIRECTORY ON)
+set(CPACK_PACKAGE_FILE_NAME
+  "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${PACKAGE_OS_NAME}-${PACKAGE_ARCH_NAME}")
+include(CPack)
