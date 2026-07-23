@@ -125,7 +125,7 @@ private:
                 |___/                                      
 Enable the class as plugin 
 */
-INSTALL_SINK_DRIVER(Hdf5Plugin, json)
+MADS_REGISTER_PLUGINS(Hdf5Plugin)
 
 
 /*

@@ -104,7 +104,7 @@ include(FetchContent)
 # pugg is for the plugin system
 FetchContent_Declare(pugg 
   GIT_REPOSITORY https://github.com/pbosetti/pugg.git
-  GIT_TAG        1.1.0
+  GIT_TAG        1.2.0
   GIT_SHALLOW    TRUE
   GIT_PROGRESS   TRUE
   EXCLUDE_FROM_ALL
@@ -112,7 +112,7 @@ FetchContent_Declare(pugg
 
 hdf5_plugin_disable_dependency_testing()
 FetchContent_Declare(json
-  URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+  URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
@@ -140,7 +140,7 @@ FetchContent_MakeAvailable(pugg json hdf5)
 
 FetchContent_Populate(plugin 
   GIT_REPOSITORY https://github.com/pbosetti/mads_plugin.git
-  GIT_TAG        v2.3-P7
+  GIT_TAG        v2.4-P8
   GIT_SHALLOW    TRUE
   SUBBUILD_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/plugin-subbuild
   SOURCE_DIR ${CMAKE_CURRENT_BINARY_DIR}/_deps/plugin-src
